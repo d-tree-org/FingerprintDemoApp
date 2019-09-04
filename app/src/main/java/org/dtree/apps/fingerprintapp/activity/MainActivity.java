@@ -1,15 +1,24 @@
-package org.dtree.apps.fingerprintapp;
+package org.dtree.apps.fingerprintapp.activity;
 
+import android.arch.lifecycle.LiveData;
+import android.arch.lifecycle.Observer;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.simprints.libsimprints.*;
 
-import java.nio.file.FileAlreadyExistsException;
+import org.dtree.apps.fingerprintapp.R;
+import org.dtree.apps.fingerprintapp.base.AddoDatabase;
+import org.dtree.apps.fingerprintapp.model.User;
+
 import java.util.ArrayList;
 
 
@@ -17,25 +26,25 @@ public class MainActivity extends AppCompatActivity {
 
     Button scanFingerPrint;
     TextView message;
+    ImageView userImage;
 
     SimHelper simHelper = new SimHelper(org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_PROJECT_ID, org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_MODULE_ID);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(org.dtree.apps.fingerprintapp.R.layout.activity_main);
         setupview();
-
 
     }
 
     private void setupview(){
         message = findViewById(R.id.message);
+        userImage = findViewById(R.id.user_image);
     }
 
     public void register(View v){
-        Intent intent = simHelper.register(org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_MODULE_ID);
-        startActivityForResult(intent, 11);
+        startActivity(new Intent(this, RegisterActivity.class));
     }
 
     public void identify(View v){
@@ -50,16 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
         // We can pull the unique ID from LibSimprints by creating a registration
         // object from the returned Intent data, and retrieving the GUID.
-
-        if (requestCode == 11){
-            //Register
-            Registration registration =
-                    data.getParcelableExtra(Constants.SIMPRINTS_REGISTRATION);
-            String uniqueId = registration.getGuid();
-
-            message.setText("Fingerprint ID : "+uniqueId);
-
-        }else if (requestCode == 22){
+        if (requestCode == 22){
 
             ArrayList<Identification> identifications =
                     data.getParcelableArrayListExtra(Constants.SIMPRINTS_IDENTIFICATIONS);
@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity {
             Identification mostConfident;
             boolean found = false;
             boolean lowConfidence = false;
+            User user;
 
             if (identifications.size() > 0){
                 mostConfident = identifications.get(0);
@@ -74,8 +75,10 @@ public class MainActivity extends AppCompatActivity {
                     switch (identifications.get(i).getTier()){
                         case TIER_1:
                             mostConfident = identifications.get(i);
+                            getUserDetails(mostConfident);
+                            Log.d("Found", "Confidence "+mostConfident.getConfidence());
                             found = true;
-                            continue;
+                            break;
                         case TIER_2:
                             mostConfident = identifications.get(i);
                             found = true;
@@ -97,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
                 if (found){
                     if (!lowConfidence){
                         message.setText("User found!!!");
+                        //getUserDetails(mostConfident);
                     }else {
                         message.setText("User found with an OKAY match");
                     }
@@ -109,6 +113,27 @@ public class MainActivity extends AppCompatActivity {
         }
 
         //Boolean bcc = (Boolean) data.getParcelableExtra(Constants.SIMPRINTS_BIOMETRICS_COMPLETE_CHECK);
+    }
+
+    private void getUserDetails(Identification identification){
+
+        final AddoDatabase database = AddoDatabase.getInstance(MainActivity.this);
+        LiveData<User> userLiveData = database.userDao().getUserById(identification.getGuid());
+        userLiveData.observe(this, new Observer<User>() {
+            @Override
+            public void onChanged(@Nullable User user) {
+                Log.d("Found", "Getting user from the database");
+                if (user != null){
+                    message.setText(user.getUserName());
+                    Log.d("Found", "User image "+user.getUserImage());
+                    Glide.with(MainActivity.this)
+                            .load(user.getUserImage())
+                            .centerCrop()
+                            .into(userImage);
+                }
+            }
+        });
+
     }
 
 }

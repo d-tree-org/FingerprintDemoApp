@@ -1,20 +1,34 @@
 package org.dtree.apps.fingerprintapp.model;
 
+import android.arch.persistence.room.Entity;
+import android.arch.persistence.room.PrimaryKey;
+import android.support.annotation.NonNull;
+
 import com.simprints.libsimprints.Identification;
+
+import java.io.Serializable;
 
 /**
  * Author : Isaya Mollel on 04/09/2019.
  */
-public class User {
+
+@Entity
+public class User implements Serializable {
+
+    @PrimaryKey
+    @NonNull
+    String userId;
 
     String userName;
     String userImage;
-    Identification userIdentification;
 
-    public User(String name, String image, Identification identification){
+    public User(){
+
+    }
+
+    public User(String name, String image){
         this.userName = name;
         this.userImage = image;
-        this.userIdentification = identification;
     }
 
     public String getUserName() {
@@ -33,11 +47,11 @@ public class User {
         this.userImage = userImage;
     }
 
-    public Identification getUserIdentification() {
-        return userIdentification;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUserIdentification(Identification userIdentification) {
-        this.userIdentification = userIdentification;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }
