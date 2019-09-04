@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 import com.simprints.libsimprints.*;
 
+import java.nio.file.FileAlreadyExistsException;
 import java.util.ArrayList;
 
 
@@ -60,27 +61,49 @@ public class MainActivity extends AppCompatActivity {
 
         }else if (requestCode == 22){
 
-            //Identify
-            Identification identification =
-                    data.getParcelableExtra("identification");
+            ArrayList<Identification> identifications =
+                    data.getParcelableArrayListExtra(Constants.SIMPRINTS_IDENTIFICATIONS);
 
-            try{
-                identification.getGuid();
-                identification.getConfidence();
-                identification.getTier();
+            Identification mostConfident;
+            boolean found = false;
+            boolean lowConfidence = false;
 
-                ArrayList<Identification> identifications =
-                        data.getParcelableArrayListExtra(Constants.SIMPRINTS_IDENTIFICATIONS);
-                for (Identification id : identifications) {
-                    id.getGuid();
-                    id.getConfidence();
-                    id.getTier();
-
-                    String uniqueId = id.getGuid();
-                    message.setText(" User identified with ID : "+uniqueId);
+            if (identifications.size() > 0){
+                mostConfident = identifications.get(0);
+                for (int i=0; i<identifications.size(); i++){
+                    switch (identifications.get(i).getTier()){
+                        case TIER_1:
+                            mostConfident = identifications.get(i);
+                            found = true;
+                            continue;
+                        case TIER_2:
+                            mostConfident = identifications.get(i);
+                            found = true;
+                            break;
+                        case TIER_3:
+                            mostConfident = identifications.get(i);
+                            lowConfidence = true;
+                            found = true;
+                            break;
+                        case TIER_4:
+                            found = false;
+                            break;
+                        case TIER_5:
+                            found = false;
+                            break;
+                    }
                 }
-            }catch (Exception e){
-                e.printStackTrace();
+
+                if (found){
+                    if (!lowConfidence){
+                        message.setText("User found!!!");
+                    }else {
+                        message.setText("User found with an OKAY match");
+                    }
+                }else {
+                    message.setText("User not found");
+                }
+
             }
 
         }
