@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import com.simprints.libsimprints.*;
 
+import java.util.ArrayList;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -23,20 +25,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setupview();
 
-        scanFingerPrint.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = simHelper.register(org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_MODULE_ID);
-                startActivityForResult(intent, 11);
-            }
-        });
-
 
     }
 
     private void setupview(){
-        scanFingerPrint = findViewById(R.id.scan_fingerprint);
         message = findViewById(R.id.message);
+    }
+
+    public void register(View v){
+        Intent intent = simHelper.register(org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_MODULE_ID);
+        startActivityForResult(intent, 11);
+    }
+
+    public void identify(View v){
+        Intent intent = simHelper.identify(org.dtree.apps.fingerprintapp.util.Constants.SIMPRINTS_MODULE_ID); // The module to search in
+        startActivityForResult(intent, 22);
     }
 
     @Override
@@ -47,11 +50,40 @@ public class MainActivity extends AppCompatActivity {
         // We can pull the unique ID from LibSimprints by creating a registration
         // object from the returned Intent data, and retrieving the GUID.
 
-        Registration registration =
-                data.getParcelableExtra(Constants.SIMPRINTS_REGISTRATION);
-        String uniqueId = registration.getGuid();
+        if (requestCode == 11){
+            //Register
+            Registration registration =
+                    data.getParcelableExtra(Constants.SIMPRINTS_REGISTRATION);
+            String uniqueId = registration.getGuid();
 
-        message.setText("Fingerprint ID : "+uniqueId);
+            message.setText("Fingerprint ID : "+uniqueId);
+
+        }else if (requestCode == 22){
+
+            //Identify
+            Identification identification =
+                    data.getParcelableExtra("identification");
+
+            try{
+                identification.getGuid();
+                identification.getConfidence();
+                identification.getTier();
+
+                ArrayList<Identification> identifications =
+                        data.getParcelableArrayListExtra(Constants.SIMPRINTS_IDENTIFICATIONS);
+                for (Identification id : identifications) {
+                    id.getGuid();
+                    id.getConfidence();
+                    id.getTier();
+
+                    String uniqueId = id.getGuid();
+                    message.setText(" User identified with ID : "+uniqueId);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+        }
 
         //Boolean bcc = (Boolean) data.getParcelableExtra(Constants.SIMPRINTS_BIOMETRICS_COMPLETE_CHECK);
     }
